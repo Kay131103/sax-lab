@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sax Lab — an ML tutor for the instrument I practice at night</title>
+    <meta name="description" content="Real-time pitch detection written from scratch (autocorrelation, zero dependencies) grading long tones, intonation and stability. In-browser, free, no server." />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%232563EB'/><text x='50' y='72' font-size='52' text-anchor='middle'>🎷</text></svg>" />
+    <style>
+      :root {
+        --bg: #faf8f5; --paper: #fffdf9; --ink: #1a1a1a; --soft: #4a4a4a; --faint: #8a8a8a;
+        --elec: #2563eb; --elec-soft: #dbeafe; --coral: #f87171; --coral-soft: #fee2e2;
+        --sage: #86efac; --sage-soft: #dcfce7; --butter: #fde68a; --butter-dark: #facc15;
+        --lav-soft: #ede9fe; --sand: #e7d8c9; --sand-soft: #f5ede4;
+      }
+      * { box-sizing: border-box; margin: 0; }
+      body { background: var(--bg); color: var(--ink); font: 15px/1.5 "DM Sans", system-ui, sans-serif; padding: 28px 18px 70px; }
+      .wrap { max-width: 1080px; margin: 0 auto; }
+      header h1 { font-family: "Plus Jakarta Sans", sans-serif; font-weight: 800; font-size: clamp(30px, 4.5vw, 44px); }
+      header .sub { color: var(--soft); max-width: 780px; margin-top: 8px; }
+      header .badge-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+      .badge { font-family: "JetBrains Mono", monospace; font-size: 11px; border: 1.5px solid var(--ink); border-radius: 999px; padding: 3px 11px; background: var(--paper); }
+      .badge.blue { background: var(--elec-soft); } .badge.sage { background: var(--sage-soft); } .badge.butter { background: var(--butter); }
+
+      .lab { display: grid; grid-template-columns: 300px 1fr; gap: 16px; margin-top: 26px; }
+      @media (max-width: 900px) { .lab { grid-template-columns: 1fr; } }
+      .panel { background: var(--paper); border: 2px solid var(--ink); border-radius: 14px; box-shadow: 4px 4px 0 var(--ink); padding: 16px; }
+      .panel h3 { font-family: "JetBrains Mono", monospace; font-size: 12px; letter-spacing: 0.12em; color: var(--elec); margin-bottom: 12px; }
+
+      .btn {
+        display: inline-flex; align-items: center; gap: 7px; justify-content: center;
+        font-weight: 700; font-size: 14px; padding: 9px 15px; border-radius: 10px;
+        border: 2px solid var(--ink); background: var(--paper); color: var(--ink);
+        box-shadow: 3px 3px 0 var(--ink); cursor: pointer; transition: transform 0.08s;
+        width: 100%;
+      }
+      .btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+      .btn.primary { background: var(--elec); color: #fff; }
+      .btn.coral { background: var(--coral-soft); }
+      .btn.on { background: var(--sage-soft); }
+      .btn + .btn { margin-top: 8px; }
+
+      .mode-tabs { display: flex; gap: 7px; margin-bottom: 14px; }
+      .mode-tabs button {
+        flex: 1; font-family: "JetBrains Mono", monospace; font-size: 12px;
+        border: 2px solid var(--ink); border-radius: 9px; background: var(--paper);
+        padding: 8px 4px; cursor: pointer;
+      }
+      .mode-tabs button.active { background: var(--ink); color: var(--bg); }
+      .readout {
+        border: 2px solid var(--ink); border-radius: 12px; background: var(--paper);
+        padding: 14px; text-align: center; margin-bottom: 12px;
+      }
+      .readout .note { font-family: "Plus Jakarta Sans"; font-weight: 800; font-size: 44px; line-height: 1; }
+      .readout .cents { font-family: "JetBrains Mono", monospace; font-size: 15px; margin-top: 4px; }
+      .cents-bar { position: relative; height: 22px; border: 2px solid var(--ink); border-radius: 8px; background: linear-gradient(90deg, var(--coral-soft) 0%, #fff 30%, 70%, var(--coral-soft) 100%); margin-top: 10px; }
+      .cents-bar .needle { position: absolute; top: -4px; bottom: -4px; width: 5px; background: var(--ink); border-radius: 3px; left: 50%; transition: left 0.08s linear; }
+      .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+      .stat { border: 2px solid var(--ink); border-radius: 9px; padding: 8px 10px; background: var(--bg); }
+      .stat .v { font-family: "JetBrains Mono", monospace; font-weight: 700; font-size: 16px; }
+      .stat .l { font-size: 10px; color: var(--faint); font-family: "JetBrains Mono", monospace; }
+      .holds { display: flex; flex-direction: column; gap: 7px; margin-top: 8px; }
+      .hold { display: flex; justify-content: space-between; align-items: center; border: 1.5px solid var(--ink); border-radius: 9px; padding: 7px 10px; background: var(--bg); font-family: "JetBrains Mono", monospace; font-size: 11.5px; }
+      .grade { font-weight: 700; padding: 2px 9px; border-radius: 999px; border: 1.5px solid var(--ink); }
+      .grade.gold { background: var(--butter); } .grade.silver { background: var(--elec-soft); } .grade.bronze { background: var(--sand); } .grade.try { background: var(--coral-soft); }
+      canvas { display: block; width: 100%; border: 2px solid var(--ink); border-radius: 10px; background: var(--bg); }
+      .legend { display: flex; gap: 14px; font-size: 12px; color: var(--soft); margin-top: 8px; flex-wrap: wrap; }
+      .legend .dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; border: 1.5px solid var(--ink); vertical-align: -1px; margin-right: 4px; }
+      .how { margin-top: 26px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+      .how .card { background: var(--paper); border: 2px solid var(--ink); border-radius: 14px; padding: 16px; box-shadow: 4px 4px 0 var(--ink); }
+      .how h4 { font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--elec); margin-bottom: 8px; letter-spacing: 0.1em; }
+      .how p, .how li { font-size: 13.5px; color: var(--soft); }
+      .how ol, .how ul { padding-left: 18px; margin-top: 6px; }
+      .how code { font-family: "JetBrains Mono", monospace; font-size: 12px; background: var(--sage-soft); border: 1px solid var(--ink); border-radius: 4px; padding: 0 4px; }
+      footer { margin-top: 30px; text-align: center; font-family: "JetBrains Mono", monospace; font-size: 11.5px; color: var(--faint); }
+      footer a { color: var(--elec); }
+      .mic-note { font-size: 12px; color: var(--faint); margin-top: 8px; }
+      .sax-fact { margin-top: 10px; border: 2px dashed var(--ink); border-radius: 10px; padding: 9px 12px; font-size: 12.5px; background: var(--sand-soft); }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Sax Lab 🎷</h1>
+        <p class="sub">
+          An ML tutor for the instrument I practice at night. Real-time pitch detection written
+          from scratch (autocorrelation — no libraries), grading long tones, intonation and
+          stability. Everything runs in your browser: no server, no uploads, no cost.
+        </p>
+        <div class="badge-row">
+          <span class="badge blue">autocorrelation pitch detection</span>
+          <span class="badge sage">0 dependencies</span>
+          <span class="badge butter">on-device audio</span>
+        </div>
+      </header>
+
+      <div class="lab">
+        <div class="panel">
+          <h3>CONTROLS</h3>
+          <div class="mode-tabs">
+            <button id="modeTuner" class="active">tuner</button>
+            <button id="modeTones">long tones</button>
+          </div>
+          <button class="btn primary" id="micBtn" data-testid="mic-btn">🎤 enable microphone</button>
+          <button class="btn" id="demoBtn" data-testid="demo-btn">🔊 play test tone (A4)</button>
+          <div class="mic-note">mic requires HTTPS (or localhost). nothing is recorded or uploaded — analysis happens in this tab.</div>
+          <div id="toneControls" style="display:none; margin-top: 10px;">
+            <div style="font-size: 12px; color: var(--faint); font-family: 'JetBrains Mono', monospace; margin-bottom: 4px;">demo tone</div>
+            <input type="range" id="demoNote" min="45" max="81" value="57" style="width:100%; accent-color: var(--elec);" />
+            <div class="mic-note" id="demoNoteLabel">A3 · 220 Hz — vibrato + drift included</div>
+          </div>
+
+          <div class="readout" style="margin-top: 14px;" data-testid="readout">
+            <div class="note" id="noteDisplay">—</div>
+            <div class="cents" id="centsDisplay">play something</div>
+            <div class="cents-bar"><div class="needle" id="needle"></div></div>
+          </div>
+
+          <div class="stats">
+            <div class="stat"><div class="v" id="freqVal">—</div><div class="l">Hz</div></div>
+            <div class="stat"><div class="v" id="clarityVal">—</div><div class="l">clarity</div></div>
+          </div>
+        </div>
+
+        <div class="stack" style="display:flex; flex-direction:column; gap:16px;">
+          <div class="panel">
+            <h3>PITCH TRACK — live</h3>
+            <canvas id="stave" height="360"></canvas>
+            <div class="legend">
+              <span><span class="dot" style="background:var(--elec)"></span>your pitch</span>
+              <span><span class="dot" style="background:var(--butter-dark)"></span>nearest-note lane</span>
+              <span><span class="dot" style="background:var(--coral)"></span>±50 cents window</span>
+            </div>
+          </div>
+
+          <div class="panel" id="tonesPanel" style="display:none;">
+            <h3>LONG TONES — automatic grading</h3>
+            <div class="stats">
+              <div class="stat"><div class="v" id="holdDur">0.0s</div><div class="l">current hold</div></div>
+              <div class="stat"><div class="v" id="holdDrift">—</div><div class="l">drift (median ¢)</div></div>
+              <div class="stat"><div class="v" id="holdStab">—</div><div class="l">stability (σ ¢)</div></div>
+              <div class="stat"><div class="v" id="holdGrade">—</div><div class="l">last grade</div></div>
+            </div>
+            <div class="holds" id="holdList"></div>
+            <div class="sax-fact">grading: gold = 5s+ hold, |drift| &lt; 10¢, σ &lt; 20¢ · silver = 3s+ · bronze = 2s+ · the rest: "try again tomorrow, the neighbours are counting on you."</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="how">
+        <div class="card">
+          <h4>HOW PITCH DETECTION WORKS HERE</h4>
+          <p>The mic's PCM buffer is correlated against itself at every lag; the first strong
+          peak after the direct signal is the note's period, and parabolic interpolation
+          sharpens it to sub-sample precision. ~60 detections/second, all in this tab.</p>
+        </div>
+        <div class="card">
+          <h4>WHAT THE GRADES MEASURE</h4>
+          <ul>
+            <li><b>duration</b> — breath support over the hold</li>
+            <li><b>drift</b> — median cents from the note (embouchure consistency)</li>
+            <li><b>σ stability</b> — how flat the pitch line is (air control)</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4>NO SAX? TRY IT ANYWAY</h4>
+          <p>Hit <b>play test tone</b> — a synthesized reed-like tone with vibrato and slow
+          drift runs through the same detector. Whistle or hum instead if you prefer being the instrument.</p>
+        </div>
+      </div>
+
+      <footer>
+        pitch detection from scratch · <a href="https://github.com/Kay131103/sax-lab">github.com/Kay131103/sax-lab</a> · part of the krithiuk.space lab
+      </footer>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

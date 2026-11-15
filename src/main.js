@@ -1,5 +1,6 @@
 import { autoCorrelate } from "./pitch.js";
 import { analyze, noteName, midiToFreq, freqToMidi } from "./notes.js";
+import { SCALES, sargamSequence } from "./scales.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -10,6 +11,9 @@ let sourceNode = null;
 let demoOsc = null, demoGain = null, demoLfo = null;
 let running = false;
 let mode = "tuner";
+
+/* ---------------- sargam engine ---------------- */
+const sg = { active: false, sa: 45, scale: "bilawal", seq: [], idx: 0, holdFrames: 0, noteCents: [], results: [] };
 
 let freqSmoothed = 0;
 let trail = [];            // {t, fineMidi} — the pitch line
@@ -125,6 +129,7 @@ function loop() {
     $("clarityVal").textContent = r.clarity.toFixed(2);
 
     if (mode === "tones") trackHold(info, now);
+    if (mode === "sargam") sargamTick(info, now);
   } else if (mode === "tones") {
     endHold(now); // silence ends the hold
   }
@@ -198,8 +203,10 @@ function drawStave(now) {
   sctx.scale(dpr, dpr);
   sctx.clearRect(0, 0, w, h);
 
-  // vertical center: the note currently (or last) played
-  const center = trail.length ? Math.round(trail[trail.length - 1].fineMidi) : 57;
+  // vertical center: expected note during sargam, else last played
+  const center = (mode === "sargam" && sg.active && sg.seq.length)
+    ? sg.sa + sg.seq[sg.idx].offset
+    : (trail.length ? Math.round(trail[trail.length - 1].fineMidi) : 57);
   const RANGE = 6; // semitones visible above/below center
   const midiToY = (m) => h / 2 - (m - center) * (h / (RANGE * 2 + 1));
 
@@ -217,8 +224,13 @@ function drawStave(now) {
     sctx.fillText(noteName(m), 12, y + 4);
   }
 
-  // nearest-note lane highlight (butter)
-  if (trail.length) {
+  // lane highlight: expected note (sargam) else nearest note (butter)
+  if (mode === "sargam" && sg.active && sg.seq.length) {
+    const m = sg.sa + sg.seq[sg.idx].offset;
+    const y = midiToY(m);
+    sctx.fillStyle = "rgba(37,99,235,0.22)";
+    sctx.fillRect(70, y - (h / (RANGE * 2 + 1)) / 2, w - 74, h / (RANGE * 2 + 1));
+  } else if (trail.length) {
     const m = Math.round(trail[trail.length - 1].fineMidi);
     const y = midiToY(m);
     sctx.fillStyle = "rgba(250,204,21,0.25)";
@@ -253,6 +265,135 @@ function drawStave(now) {
   sctx.strokeRect(1, 1, w - 2, h - 2);
 }
 
+/* ---------------- sargam engine ---------------- */
+function rebuildSargam() {
+  sg.seq = sargamSequence(sg.scale);
+  sg.idx = 0; sg.holdFrames = 0; sg.noteCents = []; sg.results = [];
+  renderSargamChips();
+  $("sgFeedback").innerHTML = sg.active
+    ? `waiting for <b>${sg.seq[sg.idx].syl}</b>…`
+    : "set your Sa, choose a scale, hit start.";
+}
+
+function renderSargamChips() {
+  const el = $("sgChips");
+  el.innerHTML = "";
+  sg.seq.forEach((n, i) => {
+    const chip = document.createElement("span");
+    chip.className = "chip" + (i === sg.idx && sg.active ? " chip-blue" : i < sg.idx ? " chip-sage" : "");
+    chip.textContent = n.syl;
+    el.appendChild(chip);
+  });
+}
+
+function sargamTick(info, now) {
+  if (!sg.active || !sg.seq.length) return;
+  const n = sg.seq[sg.idx];
+  const expected = sg.sa + n.offset;
+  const fine = info.fineMidi ?? freqToMidi(info.note ? midiToFreq(info.note) : 0);
+  const dev = (fine - expected) * 100;
+
+  if (Math.abs(dev) <= 35) {
+    sg.holdFrames++;
+    sg.noteCents.push(dev);
+    $("sgFeedback").innerHTML = `listening to <b>${n.syl}</b>… ${dev > 0 ? "+" : ""}${dev.toFixed(0)}¢`;
+  } else {
+    sg.holdFrames = 0;
+    const targetName = noteName(expected);
+    if (Math.abs(dev) > 100) {
+      $("sgFeedback").innerHTML = `that's <b>${info.note}</b> — I'm waiting for <b>${n.syl} (${targetName})</b>`;
+    }
+  }
+
+  // sustained → note passed
+  if (sg.holdFrames >= 12) {
+    const avg = sg.noteCents.reduce((s, c) => s + c, 0) / sg.noteCents.length;
+    sg.results.push({ syl: n.syl, avgDev: avg });
+    sg.holdFrames = 0; sg.noteCents = [];
+    sg.idx++;
+    if (sg.idx >= sg.seq.length) {
+      finishSargam();
+    } else {
+      renderSargamChips();
+      $("sgFeedback").innerHTML = `✓ <b>${n.syl}</b> done (${avg > 0 ? "+" : ""}${avg.toFixed(0)}¢ avg) — next: <b>${sg.seq[sg.idx].syl}</b>`;
+    }
+  }
+}
+
+function finishSargam() {
+  sg.active = false;
+  renderSargamChips();
+  const avg = sg.results.length
+    ? sg.results.reduce((s, r) => s + Math.abs(r.avgDev), 0) / sg.results.length
+    : 0;
+  $("sgFeedback").innerHTML = `🎉 sargam complete! average deviation <b>${avg.toFixed(0)}¢</b> across ${sg.results.length} notes.`;
+  const sum = document.createElement("div");
+  sum.className = "holds";
+  sum.innerHTML = sg.results.map((r) =>
+    `<div class="hold"><span>${r.syl}</span><span class="grade ${Math.abs(r.avgDev) < 15 ? "gold" : "silver"}">${r.avgDev > 0 ? "+" : ""}${r.avgDev.toFixed(0)}¢</span></div>`).join("");
+  $("sgSummary").innerHTML = "";
+  $("sgSummary").appendChild(sum);
+}
+
+/* ---------------- sargam wiring ---------------- */
+$("scaleSel").innerHTML = Object.entries(SCALES).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join("");
+$("scaleSel").addEventListener("change", (e) => { sg.scale = e.target.value; rebuildSargam(); });
+
+$("setSaBtn").addEventListener("click", () => {
+  // capture ~1.2s of pitch, take the median as Sa
+  const samples = [];
+  $("setSaBtn").textContent = "🎯 listening… play Sa";
+  const iv = setInterval(() => {
+    analyserNode().getFloatTimeDomainData(buf);
+    const r = autoCorrelate(buf, audioCtx.sampleRate);
+    if (r.freq > 0) samples.push(freqToMidi(r.freq));
+  }, 60);
+  setTimeout(() => {
+    clearInterval(iv);
+    if (samples.length) {
+      samples.sort((a, b) => a - b);
+      sg.sa = Math.round(samples[Math.floor(samples.length / 2)]);
+      $("saLabel").textContent = `Sa: ${noteName(sg.sa)} (${midiToFreq(sg.sa).toFixed(0)} Hz)`;
+    } else {
+      $("saLabel").textContent = "no pitch detected — try again";
+    }
+    $("setSaBtn").textContent = "🎯 play your Sa — set it";
+    rebuildSargam();
+  }, 1400);
+});
+
+$("sgStart").addEventListener("click", () => {
+  sg.active = !sg.active;
+  $("sgStart").textContent = sg.active ? "⏹ stop" : "▶ start";
+  rebuildSargam();
+  if (sg.active) $("sgFeedback").innerHTML = `waiting for <b>${sg.seq[0].syl}</b>…`;
+});
+
+$("sgDemo").addEventListener("click", () => {
+  // the OS plays its own sargam — the tutor grades it in real time
+  if (!sg.active) { $("sgStart").click(); }
+  rebuildSargam();
+  stopSource();
+  audioCtx = audioCtx || new AudioContext();
+  audioCtx.resume();
+  startDemo();
+  $("sgDemo").textContent = "⏹ stop sargam playback";
+  let i = 0;
+  if (window.__sgDemoIv) clearInterval(window.__sgDemoIv);
+  window.__sgDemoIv = setInterval(() => {
+    if (!sg.active || i >= sg.seq.length) {
+      clearInterval(window.__sgDemoIv);
+      window.__sgDemoIv = null;
+      $("sgDemo").textContent = "🔊 play the sargam";
+      setTimeout(() => { if (mode === "sargam" && !sg.active) {} }, 100);
+      return;
+    }
+    const f = midiToFreq(sg.sa + sg.seq[i].offset);
+    if (demoOsc) demoOsc.frequency.value = f;
+    i++;
+  }, 900);
+});
+
 /* ---------------- wiring ---------------- */
 let loopId = null;
 function startLoop() {
@@ -277,14 +418,22 @@ $("demoNote").addEventListener("input", (e) => {
 });
 $("modeTuner").addEventListener("click", () => {
   mode = "tuner";
-  $("modeTuner").classList.add("active"); $("modeTones").classList.remove("active");
-  $("tonesPanel").style.display = "none";
+  $("modeTuner").classList.add("active"); $("modeTones").classList.remove("active"); $("modeSargam").classList.remove("active");
+  $("tonesPanel").style.display = "none"; $("sargamPanel").style.display = "none";
+  sg.active = false;
   endHold(performance.now() / 1000);
 });
 $("modeTones").addEventListener("click", () => {
   mode = "tones";
-  $("modeTones").classList.add("active"); $("modeTuner").classList.remove("active");
-  $("tonesPanel").style.display = "block";
+  $("modeTones").classList.add("active"); $("modeTuner").classList.remove("active"); $("modeSargam").classList.remove("active");
+  $("tonesPanel").style.display = "block"; $("sargamPanel").style.display = "none";
+  sg.active = false;
+});
+$("modeSargam").addEventListener("click", () => {
+  mode = "sargam";
+  $("modeSargam").classList.add("active"); $("modeTuner").classList.remove("active"); $("modeTones").classList.remove("active");
+  $("sargamPanel").style.display = "block"; $("tonesPanel").style.display = "none";
+  rebuildSargam();
 });
 
 window.addEventListener("resize", () => drawStave(performance.now() / 1000));

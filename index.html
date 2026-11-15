@@ -100,6 +100,7 @@
           <div class="mode-tabs">
             <button id="modeTuner" class="active">tuner</button>
             <button id="modeTones">long tones</button>
+            <button id="modeSargam">sargam</button>
           </div>
           <button class="btn primary" id="micBtn" data-testid="mic-btn">🎤 enable microphone</button>
           <button class="btn" id="demoBtn" data-testid="demo-btn">🔊 play test tone (A4)</button>
@@ -131,6 +132,23 @@
               <span><span class="dot" style="background:var(--butter-dark)"></span>nearest-note lane</span>
               <span><span class="dot" style="background:var(--coral)"></span>±50 cents window</span>
             </div>
+          </div>
+
+          <div class="panel" id="sargamPanel" style="display:none;">
+            <h3>SARGAM — scale practice</h3>
+            <button class="btn" id="setSaBtn" data-testid="set-sa">🎯 play your Sa — set it</button>
+            <div class="mic-note" id="saLabel">Sa: A3 (220 Hz) — or pick it in the demo</div>
+            <div style="margin: 9px 0;">
+              <label style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--faint); display:block; margin-bottom:3px;">scale</label>
+              <select id="scaleSel" style="width:100%; font:inherit; padding:7px; border:2px solid var(--ink); border-radius:8px; background:var(--paper);"></select>
+            </div>
+            <div class="btn-row" style="display:flex; gap:8px;">
+              <button class="btn primary" id="sgStart" data-testid="sargam-start">▶ start</button>
+              <button class="btn" id="sgDemo" data-testid="sargam-demo">🔊 play the sargam</button>
+            </div>
+            <div id="sgChips" style="display:flex; gap:5px; flex-wrap:wrap; margin-top:12px;"></div>
+            <div class="mono-sub" id="sgFeedback" style="margin-top:10px; min-height:34px;">set your Sa, choose a scale, hit start. I'll walk you up and down the scale and grade every note.</div>
+            <div id="sgSummary"></div>
           </div>
 
           <div class="panel" id="tonesPanel" style="display:none;">

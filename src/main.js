@@ -1,6 +1,7 @@
 import { autoCorrelate } from "./pitch.js";
 import { analyze, noteName, midiToFreq, freqToMidi } from "./notes.js";
 import { SCALES, sargamSequence } from "./scales.js";
+import { predictBias, updateOnline, modelMeta, samplesUsed } from "./biasModel.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -172,12 +173,17 @@ function finishHold() {
   const centered = hold.cents.map((c) => c - med);
   const sd = Math.sqrt(centered.reduce((s, c) => s + c * c, 0) / centered.length);
   const avgAbs = centered.reduce((s, c) => s + Math.abs(c), 0) / centered.length;
+  const modelSaid = predictBias(hold.midi);   // what the trained model expects from you here
+  updateOnline(hold.midi, med);               // one SGD step toward your reality
   let grade, cls;
   if (dur >= 5 && Math.abs(med) < 10 && sd < 20) { grade = "GOLD 🥇"; cls = "gold"; }
   else if (dur >= 3 && Math.abs(med) < 20 && sd < 35) { grade = "SILVER 🥈"; cls = "silver"; }
   else if (dur >= 2) { grade = "BRONZE 🥉"; cls = "bronze"; }
   else { grade = "TRY AGAIN"; cls = "try"; }
   $("holdGrade").textContent = grade;
+  recordFingerprintPoint(hold.midi, med);
+  $("fpMeta").textContent = `warm-started on 600 synthetic saxophone profiles · personalized with ${samplesUsed()} of your holds · model expected ${modelSaid > 0 ? "+" : ""}${modelSaid.toFixed(0)}¢ here, you played ${med > 0 ? "+" : ""}${med.toFixed(0)}¢`;
+  drawFingerprint();
   const row = document.createElement("div");
   row.className = "hold";
   row.innerHTML = `<span>${noteName(hold.midi)} · ${dur.toFixed(1)}s · drift ${med > 0 ? "+" : ""}${med.toFixed(0)}¢ · σ ${sd.toFixed(0)}¢ · avg|¢| ${avgAbs.toFixed(0)}</span><span class="grade ${cls}">${grade}</span>`;
@@ -188,6 +194,56 @@ function finishHold() {
 }
 
 const endHold = (now) => { if (hold && now - (hold.lastT || hold.startT) > 0.25) finishHold(); };
+
+/* ---------------- fingerprint drawing ---------------- */
+const fp = $("fingerprint");
+const fctx = fp.getContext("2d");
+
+function drawFingerprint() {
+  const dpr = window.devicePixelRatio || 1;
+  const w = fp.clientWidth, h = +fp.getAttribute("height");
+  fp.width = w * dpr; fp.height = h * dpr;
+  fctx.scale(dpr, dpr);
+  fctx.clearRect(0, 0, w, h);
+
+  const midis = [];
+  for (let m = 45; m <= 80; m++) midis.push(m);
+  const preds = midis.map((m) => predictBias(m));
+  const maxAbs = Math.max(25, ...preds.map((p) => Math.abs(p)));
+  const toX = (m) => 40 + ((m - 45) / 35) * (w - 56);
+  const toY = (c) => h / 2 - (c / maxAbs) * (h / 2 - 16);
+
+  // zero line
+  fctx.strokeStyle = "#d8d2c8"; fctx.lineWidth = 1;
+  fctx.beginPath(); fctx.moveTo(40, h / 2); fctx.lineTo(w - 16, h / 2); fctx.stroke();
+  // the learned curve
+  fctx.beginPath();
+  midis.forEach((m, i) => { const x = toX(m), y = toY(preds[i]); i === 0 ? fctx.moveTo(x, y) : fctx.lineTo(x, y); });
+  fctx.strokeStyle = "#2563eb"; fctx.lineWidth = 2.4; fctx.stroke();
+  // break zone (C#4–D4)
+  fctx.fillStyle = "rgba(248,113,113,0.12)";
+  fctx.fillRect(toX(61) - 6, 10, toX(63) - toX(61) + 12, h - 20);
+  fctx.fillStyle = "#8a8a8a"; fctx.font = "10px 'JetBrains Mono'";
+  fctx.fillText("the break →", toX(61), h - 8);
+  // user's real data points (from holds this device has graded)
+  const holdsSeen = JSON.parse(localStorage.getItem("saxlab:fingerprintPoints") || "[]");
+  holdsSeen.forEach((p) => {
+    fctx.beginPath(); fctx.arc(toX(p.midi), toY(Math.max(-maxAbs, Math.min(maxAbs, p.cents))), 4.5, 0, Math.PI * 2);
+    fctx.fillStyle = "var(--coral)"; fctx.fillStyle = "#f87171";
+    fctx.fill(); fctx.strokeStyle = "#1a1a1a"; fctx.lineWidth = 1.2; fctx.stroke();
+  });
+  // frame + labels
+  fctx.strokeStyle = "#1a1a1a"; fctx.lineWidth = 2; fctx.strokeRect(1, 1, w - 2, h - 2);
+  fctx.fillStyle = "#8a8a8a"; fctx.font = "10px 'JetBrains Mono'";
+  fctx.fillText("A2", 40, h - 8); fctx.fillText("G#5", w - 34, h - 8);
+}
+
+function recordFingerprintPoint(midi, cents) {
+  const pts = JSON.parse(localStorage.getItem("saxlab:fingerprintPoints") || "[]");
+  pts.push({ midi, cents });
+  while (pts.length > 60) pts.shift();
+  localStorage.setItem("saxlab:fingerprintPoints", JSON.stringify(pts));
+}
 
 /* ---------------- stave drawing ---------------- */
 const stave = $("stave");

@@ -262,8 +262,11 @@ function startLoop() {
 
 $("micBtn").addEventListener("click", () => { enableMic(); startLoop(); });
 $("demoBtn").addEventListener("click", () => {
-  if ($("demoBtn").textContent.includes("stop")) { stopSource(); running = false; $("demoBtn").textContent = "🔊 play test tone (A4)"; $("demoBtn").classList.remove("on"); }
-  else { startDemo(); startLoop(); }
+  if ($("demoBtn").textContent.includes("stop")) {
+    if (mode === "tones" && hold) finishHold();  // grade the hold before the loop stops
+    stopSource(); running = false;
+    $("demoBtn").textContent = "🔊 play test tone (A4)"; $("demoBtn").classList.remove("on");
+  } else { startDemo(); startLoop(); }
 });
 $("demoNote").addEventListener("input", (e) => {
   const midi = +e.target.value;

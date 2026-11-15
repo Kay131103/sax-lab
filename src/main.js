@@ -267,11 +267,11 @@ function drawStave(now) {
 
 /* ---------------- sargam engine ---------------- */
 function rebuildSargam() {
-  sg.seq = sargamSequence(sg.scale);
+  sg.seq = sargamSequence(sg.scale, sg.sa);
   sg.idx = 0; sg.holdFrames = 0; sg.noteCents = []; sg.results = [];
   renderSargamChips();
   $("sgFeedback").innerHTML = sg.active
-    ? `waiting for <b>${sg.seq[sg.idx].syl}</b>…`
+    ? `waiting for <b>${sg.seq[sg.idx].label}</b>…`
     : "set your Sa, choose a scale, hit start.";
 }
 
@@ -281,7 +281,8 @@ function renderSargamChips() {
   sg.seq.forEach((n, i) => {
     const chip = document.createElement("span");
     chip.className = "chip" + (i === sg.idx && sg.active ? " chip-blue" : i < sg.idx ? " chip-sage" : "");
-    chip.textContent = n.syl;
+    chip.textContent = n.chip;
+    chip.title = n.note;
     el.appendChild(chip);
   });
 }
@@ -315,7 +316,7 @@ function sargamTick(info, now) {
       finishSargam();
     } else {
       renderSargamChips();
-      $("sgFeedback").innerHTML = `✓ <b>${n.syl}</b> done (${avg > 0 ? "+" : ""}${avg.toFixed(0)}¢ avg) — next: <b>${sg.seq[sg.idx].syl}</b>`;
+      $("sgFeedback").innerHTML = `✓ <b>${n.label}</b> done (${avg > 0 ? "+" : ""}${avg.toFixed(0)}¢ avg) — next: <b>${sg.seq[sg.idx].label}</b>`;
     }
   }
 }
@@ -337,6 +338,15 @@ function finishSargam() {
 
 /* ---------------- sargam wiring ---------------- */
 $("scaleSel").innerHTML = Object.entries(SCALES).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join("");
+$("saSel").innerHTML = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"].map((n, i) => {
+  const midi = i + 48; // C3..B3
+  return `<option value="${midi}">${n} (${midiToFreq(midi).toFixed(0)} Hz)</option>`;
+}).join("");
+$("saSel").addEventListener("change", (e) => {
+  sg.sa = +e.target.value;
+  $("saLabel").textContent = `Sa: ${noteName(sg.sa)} (${midiToFreq(sg.sa).toFixed(0)} Hz)`;
+  rebuildSargam();
+});
 $("scaleSel").addEventListener("change", (e) => { sg.scale = e.target.value; rebuildSargam(); });
 
 $("setSaBtn").addEventListener("click", () => {
@@ -354,6 +364,7 @@ $("setSaBtn").addEventListener("click", () => {
       samples.sort((a, b) => a - b);
       sg.sa = Math.round(samples[Math.floor(samples.length / 2)]);
       $("saLabel").textContent = `Sa: ${noteName(sg.sa)} (${midiToFreq(sg.sa).toFixed(0)} Hz)`;
+      if ($("saSel").querySelector(`option[value="${sg.sa}"]`)) $("saSel").value = String(sg.sa);
     } else {
       $("saLabel").textContent = "no pitch detected — try again";
     }

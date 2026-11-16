@@ -1,4 +1,4 @@
-import { autoCorrelate } from "./pitch.js";
+import { detectPitch } from "./pitch.js";
 import { analyze, noteName, midiToFreq, freqToMidi } from "./notes.js";
 import { SCALES, sargamSequence, CARNATIC_STHANAS } from "./scales.js";
 import { rankRagas } from "./ragas.js";
@@ -166,7 +166,7 @@ let lastDraw = 0;
 function loop() {
   if (!running || !analyser) return;
   analyser.getFloatTimeDomainData(buf);
-  const r = autoCorrelate(buf, audioCtx.sampleRate);
+  const r = detectPitch(buf, audioCtx.sampleRate);
   const now = performance.now() / 1000;
 
   if (r.freq > 0) {
@@ -469,7 +469,7 @@ $("setSaBtn").addEventListener("click", () => {
   $("setSaBtn").textContent = "🎯 listening… play Sa";
   const iv = setInterval(() => {
     analyserNode().getFloatTimeDomainData(buf);
-    const r = autoCorrelate(buf, audioCtx.sampleRate);
+    const r = detectPitch(buf, audioCtx.sampleRate);
     if (r.freq > 0) samples.push(freqToMidi(r.freq) + transpose);
   }, 60);
   setTimeout(() => {

@@ -1,0 +1,58 @@
+{
+  "when": "2026-11-16T05:27:33.570Z",
+  "runs": [
+    {
+      "name": "2-8-8-1",
+      "trainMAE": 7.16,
+      "valMAE": 7.4
+    },
+    {
+      "name": "2-12-8-1",
+      "trainMAE": 7.16,
+      "valMAE": 7.41
+    },
+    {
+      "name": "2-16-12-1",
+      "trainMAE": 7.25,
+      "valMAE": 7.57
+    }
+  ],
+  "winner": "2-8-8-1",
+  "spot": [
+    {
+      "midi": 45,
+      "predicted": -10.7,
+      "truth": -9
+    },
+    {
+      "midi": 53,
+      "predicted": -3.9,
+      "truth": 2
+    },
+    {
+      "midi": 61,
+      "predicted": -22.6,
+      "truth": -19.7
+    },
+    {
+      "midi": 62,
+      "predicted": -22.4,
+      "truth": -24
+    },
+    {
+      "midi": 69,
+      "predicted": 20.8,
+      "truth": 14.1
+    },
+    {
+      "midi": 76,
+      "predicted": 47.7,
+      "truth": 38.1
+    },
+    {
+      "midi": 80,
+      "predicted": 56.5,
+      "truth": 50.1
+    }
+  ]
+}

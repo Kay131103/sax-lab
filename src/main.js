@@ -130,7 +130,9 @@ function loop() {
     $("clarityVal").textContent = r.clarity.toFixed(2);
 
     if (mode === "tones") trackHold(info, now);
-    if (mode === "sargam") sargamTick(info, now);
+    const shown = { ...info, fineMidi: shownMidi(freqToMidi(r.freq)) };
+    if (mode === "sargam") sargamTick(shown, now);
+    if (mode === "raga") { freeplayTick(shown, now); freeplayReadout(shown); }
   } else if (mode === "tones") {
     endHold(now); // silence ends the hold
   }

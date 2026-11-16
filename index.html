@@ -101,6 +101,7 @@
             <button id="modeTuner" class="active">tuner</button>
             <button id="modeTones">long tones</button>
             <button id="modeSargam">sargam</button>
+            <button id="modeRaga">raga</button>
           </div>
           <button class="btn primary" id="micBtn" data-testid="mic-btn">🎤 enable microphone</button>
           <button class="btn" id="demoBtn" data-testid="demo-btn">🔊 play test tone (A4)</button>
@@ -140,6 +141,21 @@
               <span><span class="dot" style="background:var(--butter-dark)"></span>nearest-note lane</span>
               <span><span class="dot" style="background:var(--coral)"></span>±50 cents window</span>
             </div>
+          </div>
+
+          <div class="panel" id="ragaPanel" style="display:none;">
+            <h3>RAGA — free-play detection</h3>
+            <div class="readout" style="margin-bottom:10px;">
+              <div class="note" id="fp2Note">—</div>
+              <div class="cents" id="fp2Swara">play freely — I'll name the swaras</div>
+            </div>
+            <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--faint); margin-bottom:5px;">swaras heard (relative to your Sa):</div>
+            <div id="ragaStream" style="display:flex; gap:5px; flex-wrap:wrap; min-height:26px; margin-bottom:12px;"></div>
+            <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--faint); margin-bottom:5px;">swara time-share:</div>
+            <div id="ragaHistogram" style="display:flex; flex-direction:column; gap:4px; margin-bottom:12px;"></div>
+            <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--faint); margin-bottom:5px;">raga matches:</div>
+            <div id="ragaMatches"></div>
+            <div class="sax-fact">method: every sustained note is mapped to a swara sthana relative to your Sa; ragas are ranked by how much of your playing fits their swaras × coverage. honest set-matching — no black box.</div>
           </div>
 
           <div class="panel" id="sargamPanel" style="display:none;">

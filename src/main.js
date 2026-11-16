@@ -14,7 +14,7 @@ let running = false;
 let mode = "tuner";
 
 /* ---------------- sargam engine ---------------- */
-const sg = { active: false, sa: 45, scale: "mayamalavagowla", seq: [], idx: 0, holdFrames: 0, noteCents: [], results: [] };
+const sg = { active: false, sa: 58, scale: "mayamalavagowla", seq: [], idx: 0, holdFrames: 0, noteCents: [], results: [] };
 
 let freqSmoothed = 0;
 let trail = [];            // {t, fineMidi} — the pitch line
@@ -60,7 +60,7 @@ function startDemo() {
   demoOsc.type = "sawtooth";
   demoGain = audioCtx.createGain();
   demoGain.gain.value = 0.12;
-  demoOsc.frequency.value = midiToFreq(+$("demoNote").value);
+  demoOsc.frequency.value = midiToFreq(+$("demoNote").value - transpose);
 
   // vibrato: ±6 cents LFO on frequency
   demoLfo = audioCtx.createOscillator();
@@ -412,7 +412,7 @@ $("setSaBtn").addEventListener("click", () => {
   const iv = setInterval(() => {
     analyserNode().getFloatTimeDomainData(buf);
     const r = autoCorrelate(buf, audioCtx.sampleRate);
-    if (r.freq > 0) samples.push(freqToMidi(r.freq));
+    if (r.freq > 0) samples.push(freqToMidi(r.freq) + transpose);
   }, 60);
   setTimeout(() => {
     clearInterval(iv);
@@ -478,11 +478,17 @@ $("demoBtn").addEventListener("click", () => {
 });
 $("demoNote").addEventListener("input", (e) => {
   const midi = +e.target.value;
-  const f = midiToFreq(midi);
+  const f = midiToFreq(midi - transpose);
   if (demoOsc) demoOsc.frequency.value = f;
   if (demoLfo) demoLfo.frequency.value = 5.2;
-  $("demoNoteLabel").textContent = `${noteName(midi)} · ${f.toFixed(0)} Hz — vibrato + drift included`;
+  $("demoNoteLabel").textContent = `${noteName(midi)} · ${f.toFixed(0)} Hz (concert) — vibrato + drift included`;
 });
+$("instrumentSel").addEventListener("change", (e) => {
+  transpose = +e.target.value;
+  try { localStorage.setItem("saxlab:instrument", JSON.stringify(transpose)); } catch {}
+  $("saLabel").textContent = `Sa: ${noteName(sg.sa)} — re-set Sa if needed`;
+});
+
 $("modeTuner").addEventListener("click", () => {
   mode = "tuner";
   $("modeTuner").classList.add("active"); $("modeTones").classList.remove("active"); $("modeSargam").classList.remove("active");

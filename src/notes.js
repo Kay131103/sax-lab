@@ -15,8 +15,8 @@ export function noteName(midi) {
 }
 
 /* f0 → { note: "A4", cents: -12, midi: 69 } (cents = deviation from nearest note) */
-export function analyze(freq) {
-  const midi = freqToMidi(freq);
+export function analyze(freq, transpose = 0) {
+  const midi = freqToMidi(freq) + transpose;
   const nearest = Math.round(midi);
   return {
     note: noteName(nearest),

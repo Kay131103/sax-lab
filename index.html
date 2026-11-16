@@ -104,6 +104,14 @@
           </div>
           <button class="btn primary" id="micBtn" data-testid="mic-btn">🎤 enable microphone</button>
           <button class="btn" id="demoBtn" data-testid="demo-btn">🔊 play test tone (A4)</button>
+          <div style="margin-top: 10px;">
+            <label style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--faint); display:block; margin-bottom:3px;">my instrument (app shows written pitch)</label>
+            <select id="instrumentSel" data-testid="instrument" style="width:100%; font:inherit; padding:7px; border:2px solid var(--ink); border-radius:8px; background:var(--paper);">
+              <option value="9" selected>🎷 alto sax in E♭ — base scale A#</option>
+              <option value="2">tenor / soprano in B♭</option>
+              <option value="0">concert pitch (no transposition)</option>
+            </select>
+          </div>
           <div class="mic-note">mic requires HTTPS (or localhost). nothing is recorded or uploaded — analysis happens in this tab.</div>
           <div id="toneControls" style="display:none; margin-top: 10px;">
             <div style="font-size: 12px; color: var(--faint); font-family: 'JetBrains Mono', monospace; margin-bottom: 4px;">demo tone</div>

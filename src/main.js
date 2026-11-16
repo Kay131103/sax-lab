@@ -207,10 +207,10 @@ function drawFingerprint() {
   fctx.clearRect(0, 0, w, h);
 
   const midis = [];
-  for (let m = 45; m <= 80; m++) midis.push(m);
+  for (let m = 45; m <= 84; m++) midis.push(m);
   const preds = midis.map((m) => predictBias(m));
   const maxAbs = Math.max(25, ...preds.map((p) => Math.abs(p)));
-  const toX = (m) => 40 + ((m - 45) / 35) * (w - 56);
+  const toX = (m) => 40 + ((m - 45) / 39) * (w - 56);
   const toY = (c) => h / 2 - (c / maxAbs) * (h / 2 - 16);
 
   // zero line

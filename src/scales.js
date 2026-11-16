@@ -11,39 +11,40 @@ export const SCALES = {
 
 export const SARGAM = ["Sa", "Re", "Ga", "Ma", "Pa", "Dha", "Ni"];
 
-/* full practice sequence: ascent Sa → Sa', then descent Sa' → Sa.
-   Every entry carries its western note name for the chosen Sa. */
+/* full practice sequence: base octave up to Sa', the WHOLE higher octave
+   (Re' Ga' Ma' Pa' Dha' Ni' Sa''), then back down to base Sa. Every pitch once,
+   except the starting/ending Sa. Every note tagged: base / pitch higher / ×2. */
 export function sargamSequence(scaleKey, saMidi = 45) {
   const steps = SCALES[scaleKey].steps;
   const chromatic = scaleKey === "chromatic";
   const deg = (offset) => {
-    if (offset === 12) return 7;
-    const i = steps.indexOf(offset);
+    const i = steps.indexOf(offset % 12 === 0 && offset !== 0 ? 0 : offset % 12);
     return i === -1 ? 7 : i;
   };
-  const syll = (i, offset) => {
-    if (chromatic) return noteNameLocal(saMidi + offset); // chromatic = note names as syllables
-    return i === 7 ? "Sa'" : SARGAM[i];
+  const octaveTag = (offset) => {
+    const oct = Math.floor(offset / 12);
+    if (oct === 0) return "base";
+    if (oct === 1) return "pitch higher";
+    return `pitch higher ×${oct}`;
   };
-  const mk = (o, i) => {
+  const mk = (o) => {
     const note = noteNameLocal(saMidi + o);
-    const s = syll(i, o);
-    const oct = o >= 12 ? "pitch higher" : "base";
-    const arrow = o >= 12 ? " ↑" : "";
+    const s = chromatic ? note : (o % 12 === 0 && o !== 0 ? "Sa" + "'".repeat(o / 12) : (() => {
+      const i = steps.indexOf(o % 12);
+      return i === -1 ? note : SARGAM[i];
+    })());
+    const oct = octaveTag(o);
+    const arrow = oct === "base" ? "" : "↑".repeat(oct);
     return {
       offset: o, syl: s, note, oct,
       label: `${s} · ${note} · ${oct}`,
       chip: `${s === note ? note : `${s}·${note}`}${arrow}`,
     };
   };
-  const up = steps.map((o, i) => mk(o, i));
-  up.push(mk(12, 7));
-  // descent skips the duplicated Sa' and ends on the opening Sa — each pitch once
-  const down = [...steps.slice(0, -1).reverse(), 0].map((o, i) => {
-    const e = mk(o, deg(o));
-    if (i === 0) e.oct = "pitch higher"; // coming down from Sa'
-    return e;
-  });
+  const up = [];
+  for (let o = 0; o <= 36; o++) if (steps.includes(o % 12)) up.push(mk(o));
+  const down = [];
+  for (let o = 35; o >= 0; o--) if (steps.includes(o % 12)) down.push(mk(o));
   return [...up, ...down];
 }
 

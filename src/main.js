@@ -182,7 +182,7 @@ function finishHold() {
   else { grade = "TRY AGAIN"; cls = "try"; }
   $("holdGrade").textContent = grade;
   recordFingerprintPoint(hold.midi, med);
-  $("fpMeta").textContent = `warm-started on 600 synthetic saxophone profiles · personalized with ${samplesUsed()} of your holds · model expected ${modelSaid > 0 ? "+" : ""}${modelSaid.toFixed(0)}¢ here, you played ${med > 0 ? "+" : ""}${med.toFixed(0)}¢`;
+  $("fpMeta").textContent = `${modelMeta.data} · personalized with ${samplesUsed()} of your holds · model expected ${modelSaid > 0 ? "+" : ""}${modelSaid.toFixed(0)}¢ here, you played ${med > 0 ? "+" : ""}${med.toFixed(0)}¢`;
   drawFingerprint();
   const row = document.createElement("div");
   row.className = "hold";

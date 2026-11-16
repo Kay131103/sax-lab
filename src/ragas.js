@@ -27,6 +27,46 @@ export const RAGAS = [
   { name: "Natabhairavi", swaras: [0, 2, 3, 5, 7, 8, 10] },
 ];
 
+/* ---- file-analysis helpers (ported from MeloMaster's raga.py) ---- */
+
+/* tonic = duration-weighted most persistent pitch class, cross-checked
+   against each candidate's Pa (the tanpura's companion) */
+export function estimateTonic(notes) {
+  if (!notes.length) return null;
+  const byPc = {};
+  for (const n of notes) {
+    const pc = ((Math.round(n.midi) % 12) + 12) % 12;
+    byPc[pc] = (byPc[pc] || 0) + (n.duration || 0.1);
+  }
+  const candidates = Object.keys(byPc).sort((a, b) => byPc[b] - byPc[a]).slice(0, 3).map(Number);
+  let best = candidates[0], bestScore = -1;
+  for (const sa of candidates) {
+    const score = (byPc[sa] || 0) + 0.6 * (byPc[(sa + 7) % 12] || 0);
+    if (score > bestScore) { best = sa; bestScore = score; }
+  }
+  return best;
+}
+
+/* frame-level midi track → sustained notes (MeloMaster's segmentation) */
+export function segmentNotes(semitoneFrames, frameTime, minDuration = 0.08) {
+  const notes = [];
+  let start = 0;
+  for (let i = 1; i <= semitoneFrames.length; i++) {
+    const boundary = i === semitoneFrames.length
+      || semitoneFrames[i] !== semitoneFrames[start]
+      || (semitoneFrames[i] !== -1 && semitoneFrames[i - 1] === -1);
+    if (boundary) {
+      const pitch = semitoneFrames[start];
+      const dur = (i - start) * frameTime;
+      if (pitch >= 0 && dur >= minDuration) {
+        notes.push({ midi: pitch, start: +(start * frameTime).toFixed(3), end: +(i * frameTime).toFixed(3), duration: +dur.toFixed(3) });
+      }
+      start = i;
+    }
+  }
+  return notes;
+}
+
 /* score how well the heard swaras fit a raga:
    purity    = fraction of played time inside the raga's swaras
    coverage  = fraction of the raga's swaras actually heard

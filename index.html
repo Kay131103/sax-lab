@@ -155,7 +155,14 @@
             <div id="ragaHistogram" style="display:flex; flex-direction:column; gap:4px; margin-bottom:12px;"></div>
             <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--faint); margin-bottom:5px;">raga matches:</div>
             <div id="ragaMatches"></div>
-            <div class="sax-fact">method: every sustained note is mapped to a swara sthana relative to your Sa; ragas are ranked by how much of your playing fits their swaras × coverage. honest set-matching — no black box.</div>
+            <div style="margin-top:16px; border-top:1.5px solid var(--ink); padding-top:12px;">
+              <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--faint); margin-bottom:5px;">don't have your sax handy? analyze an audio file (stays on your device):</div>
+              <input type="file" id="ragaFile" accept="audio/*" style="font-size:12px; width:100%;" data-testid="raga-file" />
+              <button class="btn" id="ragaFileBtn" style="margin-top:8px;" disabled>🧪 analyze the file</button>
+              <div class="mono-sub" id="fileProgress" style="margin-top:8px;"></div>
+              <div id="fileResults"></div>
+            </div>
+            <div class="sax-fact">method: every sustained note is mapped to a swara sthana relative to your Sa; ragas are ranked by how much of your playing fits their swaras × coverage. honest set-matching — no black box. for uploaded files the tonic is estimated automatically. film songs with heavy accompaniment give approximate shortlists.</div>
           </div>
 
           <div class="panel" id="sargamPanel" style="display:none;">

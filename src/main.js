@@ -1,6 +1,7 @@
 import { autoCorrelate } from "./pitch.js";
 import { analyze, noteName, midiToFreq, freqToMidi } from "./notes.js";
-import { SCALES, sargamSequence } from "./scales.js";
+import { SCALES, sargamSequence, CARNATIC_STHANAS } from "./scales.js";
+import { rankRagas } from "./ragas.js";
 import { predictBias, updateOnline, modelMeta, samplesUsed } from "./biasModel.js";
 
 const $ = (id) => document.getElementById(id);
@@ -506,9 +507,15 @@ $("modeTones").addEventListener("click", () => {
 });
 $("modeSargam").addEventListener("click", () => {
   mode = "sargam";
-  $("modeSargam").classList.add("active"); $("modeTuner").classList.remove("active"); $("modeTones").classList.remove("active");
-  $("sargamPanel").style.display = "block"; $("tonesPanel").style.display = "none";
+  $("modeSargam").classList.add("active"); $("modeTuner").classList.remove("active"); $("modeTones").classList.remove("active"); $("modeRaga").classList.remove("active");
+  $("sargamPanel").style.display = "block"; $("tonesPanel").style.display = "none"; $("ragaPanel").style.display = "none";
   rebuildSargam();
+});
+$("modeRaga").addEventListener("click", () => {
+  mode = "raga";
+  $("modeRaga").classList.add("active"); $("modeTuner").classList.remove("active"); $("modeTones").classList.remove("active"); $("modeSargam").classList.remove("active");
+  $("ragaPanel").style.display = "block"; $("tonesPanel").style.display = "none"; $("sargamPanel").style.display = "none";
+  document.getElementById("fp2Swara").innerHTML = "playing relative to <b>Sa = " + noteName(sg.sa) + "</b> — set it in the sargam tab if needed";
 });
 
 window.addEventListener("resize", () => drawStave(performance.now() / 1000));

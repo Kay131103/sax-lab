@@ -14,6 +14,10 @@ browser, all on-device, all free. No server, no uploads, no keys.
   - 🥈 **silver**: 3s+ · 🥉 **bronze**: 2s+ · otherwise: *"try again tomorrow"*
 - Grading measures **breath support** (duration), **embouchure consistency** (median
   drift) and **air control** (σ of cents deviation)
+- **Sargam (sarali varisai, Carnatic)** — set your adharashadja (Sa), pick a melakarta
+  (Mayamalavagowla, Shankarabharanam, Kharaharapriya, Harikambhoji, Natabhairavi, Todi
+  — or all 12 swara sthanas), and the tutor walks you through three octaves of swaras,
+  grading every note with its sthayi (madhya/taara) marked.
 - **No sax?** Hit *play test tone* — a synthesized reed-like tone with vibrato and slow
   drift runs through the same detector. Whistle or hum works too.
 

@@ -14,7 +14,7 @@ let running = false;
 let mode = "tuner";
 
 /* ---------------- sargam engine ---------------- */
-const sg = { active: false, sa: 45, scale: "bilawal", seq: [], idx: 0, holdFrames: 0, noteCents: [], results: [] };
+const sg = { active: false, sa: 45, scale: "mayamalavagowla", seq: [], idx: 0, holdFrames: 0, noteCents: [], results: [] };
 
 let freqSmoothed = 0;
 let trail = [];            // {t, fineMidi} — the pitch line

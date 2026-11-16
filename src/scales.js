@@ -50,7 +50,7 @@ export function sargamSequence(scaleKey, saMidi = 45) {
       offset: o, syl, note: noteName(saMidi + o), oct,
       swara: sthana,
       label: `${syl} · ${sthana} · ${note} · ${sthayi}`,
-      chip: `${syl}${arrow}`,
+      chip: `${syl === sthana ? sthana : `${syl}·${sthana}`}${arrow}`;
     };
   };
 

@@ -570,6 +570,7 @@ $("modeRaga").addEventListener("click", () => {
   mode = "raga";
   $("modeRaga").classList.add("active"); $("modeTuner").classList.remove("active"); $("modeTones").classList.remove("active"); $("modeSargam").classList.remove("active");
   $("ragaPanel").style.display = "block"; $("tonesPanel").style.display = "none"; $("sargamPanel").style.display = "none";
+  renderFreeplay();
   document.getElementById("fp2Swara").innerHTML = "playing relative to <b>Sa = " + noteName(sg.sa) + "</b> — set it in the sargam tab if needed";
 });
 

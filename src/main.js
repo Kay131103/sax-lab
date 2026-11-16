@@ -452,10 +452,16 @@ function finishSargam() {
 
 /* ---------------- sargam wiring ---------------- */
 $("scaleSel").innerHTML = Object.entries(SCALES).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join("");
-$("saSel").innerHTML = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"].map((n, i) => {
-  const midi = i + 48; // C3..B3
-  return `<option value="${midi}">${n} (${midiToFreq(midi).toFixed(0)} Hz)</option>`;
+// on the alto, sargam scales can start from A# (base) up to F# (higher)
+const SA_LOW = 58;   // A#3
+const SA_HIGH = 78;  // F#5
+const NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+$("saSel").innerHTML = Array.from({ length: SA_HIGH - SA_LOW + 1 }, (_, k) => {
+  const midi = SA_LOW + k;
+  const n = NAMES[midi % 12], oct = Math.floor(midi / 12) - 1;
+  return `<option value="${midi}">${n}${oct} (${midiToFreq(midi).toFixed(0)} Hz)</option>`;
 }).join("");
+$("saSel").value = String(sg.sa);
 $("saSel").addEventListener("change", (e) => {
   sg.sa = +e.target.value;
   $("saLabel").textContent = `Sa: ${noteName(sg.sa)} (${midiToFreq(sg.sa).toFixed(0)} Hz)`;
